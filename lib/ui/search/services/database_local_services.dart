@@ -50,9 +50,9 @@ class DatabaseLocalServices extends ChangeNotifier {
   void onInsertListTopics(Database database,String table, List<Topic> topic) async {
     LocalDatabaseRepository repository = Injector().getInstanceLocalDatabase;
     repository.onInsertAllTopics(database, table, topic).then((value) {
-      return contract.onInsertTopicSuccess();
+      return contract.onInsertAllSuccess();
     }).catchError((onError) {
-      return contract.onInsertTopicError();
+      return contract.onInsertAllSuccess();
     });
   }
 

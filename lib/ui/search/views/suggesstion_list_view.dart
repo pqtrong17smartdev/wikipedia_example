@@ -71,6 +71,7 @@ class _SuggestionListViewState extends State<SuggestionListView>
       debounce.cancel();
     }
     debounce = Timer(Duration(milliseconds: 1000), () {
+      print('CALLED onSEARCH-----------------------');
       mSearchService.onSearch(widget.query);
     });
     // return FutureBuilder(
@@ -233,9 +234,10 @@ class _SuggestionListViewState extends State<SuggestionListView>
   @override
   void onInsertTopicSuccess() {
     // TODO: implement onInsertTopicSuccess
-    setState(() {
-      isInsertSingle = false;
-    });
+    // setState(() {
+    //   isInsertSingle = false;
+    // });
+    isInsertSingle = false;
     Navigation.push(context, DetailTopicPage(keyword: topicRequest.key));
   }
 
