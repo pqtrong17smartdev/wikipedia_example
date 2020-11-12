@@ -57,8 +57,6 @@ class SearchDelegatePage extends SearchDelegate {
   @override
   Widget buildSuggestions(BuildContext context) {
     // TODO: implement buildSuggestions
-    SearchRepository repository = Injector().getInstanceSearch;
-    List<SearchResponse> response;
     return query != ""
         ? SuggestionListView(
             query: query,
