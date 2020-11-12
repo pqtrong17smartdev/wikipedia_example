@@ -1,0 +1,10 @@
+const String appbar_title = "Wikipedia";
+const String ok_text = "Ok";
+const String cancel_text = "Cancel";
+const String empty_item = "Empty item";
+const String click_to_search = "Click the button to search";
+const String enter_to_search = "Enter a text to search";
+const String no_description = "No description";
+const String search_text = "Search";
+const String detail_result = "Detail result";
+const String history_of_topic = "The history of topic will displaying here!";
