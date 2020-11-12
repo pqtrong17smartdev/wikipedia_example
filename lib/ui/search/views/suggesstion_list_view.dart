@@ -16,8 +16,26 @@ import 'package:wikipedia_example/widgets/image_customized.dart';
 import 'package:wikipedia_example/widgets/text_customized.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:provider/provider.dart';
+import '../../../entity/topic.dart';
+import '../../../entity/topic.dart';
+import '../../../navigation/navigation.dart';
+import '../../../navigation/navigation.dart';
+import '../../../values/dimens.dart';
+import '../../../values/dimens.dart';
+import '../../../values/dimens.dart';
+import '../../../values/strings.dart';
+import '../../../values/strings.dart';
+import '../../../widgets/text_customized.dart';
+import '../../../widgets/text_customized.dart';
+import '../../../widgets/text_customized.dart';
+import '../../../widgets/text_customized.dart';
+import '../../../widgets/text_customized.dart';
+import '../../../widgets/text_customized.dart';
+import '../services/database_local_services.dart';
 import 'detail_topic_page.dart';
 import 'package:connectivity/connectivity.dart';
+
+import 'detail_topic_page.dart';
 
 class SuggestionListView extends StatefulWidget {
   final String query;
@@ -51,6 +69,7 @@ class _SuggestionListViewState extends State<SuggestionListView>
     if(debounce != null){
       debounce.cancel();
     }
+    _connectivitySubscription.cancel();
   }
 
   @override
@@ -71,7 +90,12 @@ class _SuggestionListViewState extends State<SuggestionListView>
       debounce.cancel();
     }
     debounce = Timer(Duration(milliseconds: 1000), () {
-      mSearchService.onSearch(widget.query);
+      if (isConnected ?? false) {
+        print('CALLED onSEARCH-----------------------');
+        mSearchService.onSearch(widget.query);
+      }else{
+        mDatabaseLocalService.onGetDatabasePath(DATABASE_NAME);
+      }
     });
     // return FutureBuilder(
     //   future: repository.onSearchTopic(widget.query),
@@ -91,16 +115,18 @@ class _SuggestionListViewState extends State<SuggestionListView>
     //           );
     //   },
     // );
-    return Consumer<SearchServices>(
-      builder: (context, model, child) => model.mSearchResponse != null
-          ? ListView.builder(
-              itemCount: model.mSearchResponse.length,
-              itemBuilder: (context, index) => itemSuggestion(model.mSearchResponse[index]),
-            )
-          : Center(
-              child: CircularProgressIndicator(),
-            ),
-    );
+    // return Consumer<SearchServices>(
+    //   builder: (context, model, child) => model.mSearchResponse != null
+    //       ? ListView.builder(
+    //           itemCount: model.mSearchResponse.length,
+    //           itemBuilder: (context, index) => itemSuggestion(model.mSearchResponse[index]),
+    //         )
+    //       : Center(
+    //           child: CircularProgressIndicator(),
+    //         ),
+    // );
+    print('======================== $isConnected');
+    return isConnected?? false ? onBuildSearchResultNetwork() : onBuildSearchResultLocal();
   }
 
   Widget itemSuggestion(SearchResponse response) {
@@ -179,6 +205,81 @@ class _SuggestionListViewState extends State<SuggestionListView>
       ),
     );
   }
+  Widget itemSuggestionLocal(Topic response) {
+    return InkWell(
+      onTap: () async {
+        // setState(() {
+        //   isInsertSingle = true;
+        // });
+        // topicRequest = Topic(
+        //     id: response.id,
+        //     key: response.key,
+        //     title: response.title,
+        //     description: response.description,
+        //     thumbnail: response.thumbnail != null ? response.thumbnailResponse.url : null);
+        // mDatabaseLocalService.onGetDatabasePath(DATABASE_NAME);
+        showDialog(context: context, builder: (context) => AlertDialog(
+          title: TextCustomized(title_no_internet_dialog, fontWeight: FontWeightEnum.SEMI_BOLD, fontSize: d18TextSize,),
+          content: TextCustomized(content_no_internet_dialog),
+          actions: [
+            FlatButton(onPressed: () => Navigation.pop(context), child: TextCustomized(ok_text.toUpperCase()))
+          ],
+        ));
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(4.0),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: IntrinsicHeight(
+              child: Row(
+                children: [
+                  Container(
+                    child: ImageCustomized(
+                      url: ic_no_camera,
+                      fit: BoxFit.cover,
+                      width: 50,
+                      height: 50,
+                      radius: 12,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 16,
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          child: TextCustomized(
+                            "${response.title}",
+                            fontWeight: FontWeightEnum.SEMI_BOLD,
+                            maxLine: 2,
+                          ),
+                        ),
+                        SizedBox(
+                          height: 8,
+                        ),
+                        Expanded(
+                          child: Container(
+                            child: TextCustomized(
+                              "${response.description ?? "($no_description)"}",
+                              fontColor: Colors.black38,
+                              maxLine: 2,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   Future<void> _updateConnectionStatus(ConnectivityResult result) async {
     setState(() {
@@ -193,6 +294,7 @@ class _SuggestionListViewState extends State<SuggestionListView>
           isConnected = false;
           break;
         default:
+          print("DEFAULT ?????????????????????????????????????");
           isConnected = null;
           break;
       }
@@ -207,8 +309,7 @@ class _SuggestionListViewState extends State<SuggestionListView>
   @override
   void onGetPathSuccess(String path) {
     // TODO: implement onGetPathSuccess
-    print('GET PATH SUCCESS: $path --- Single: $isInsertSingle');
-    if (isInsertSingle != null && isInsertSingle) {
+    if ((isConnected?? false) && isInsertSingle != null && isInsertSingle) {
       mDatabaseLocalService.onCreateOrLoadDatabase(path, VIEWED_TOPIC_TABLE);
     }else{
       mDatabaseLocalService.onCreateOrLoadDatabase(path, CACHE_TOPIC_TABLE);
@@ -223,6 +324,9 @@ class _SuggestionListViewState extends State<SuggestionListView>
   @override
   void onGetTopicSuccess(List<Topic> response) {
     // TODO: implement onGetTopicSuccess
+    final List<Topic> searchResults = mDatabaseLocalService.onSearchLocal(response, widget.query);
+    mDatabaseLocalService.onUpdatedSearchResult(searchResults);
+    print(searchResults[0].description + "+++++++++++++++");
   }
 
   @override
@@ -233,9 +337,10 @@ class _SuggestionListViewState extends State<SuggestionListView>
   @override
   void onInsertTopicSuccess() {
     // TODO: implement onInsertTopicSuccess
-    setState(() {
-      isInsertSingle = false;
-    });
+    // setState(() {
+    //   isInsertSingle = false;
+    // });
+    isInsertSingle = false;
     Navigation.push(context, DetailTopicPage(keyword: topicRequest.key));
   }
 
@@ -247,11 +352,15 @@ class _SuggestionListViewState extends State<SuggestionListView>
   @override
   void onOpenOrCreateDatabaseSuccess(Database database) {
     // TODO: implement onOpenOrCreateDatabaseSuccess
-    print("CREATE DATABASE SUCCESS: ${database.path}");
-    if(isInsertSingle != null && isInsertSingle){
-      mDatabaseLocalService.onInsertTopic(database, VIEWED_TOPIC_TABLE, topicRequest);
+    print("CREATE DATABASE SUCCESS: ${database.path} --- $isConnected");
+    if (isConnected ?? false) {
+      if(isInsertSingle != null && isInsertSingle){
+        mDatabaseLocalService.onInsertTopic(database, VIEWED_TOPIC_TABLE, topicRequest);
+      }else{
+        mDatabaseLocalService.onInsertListTopics(database, CACHE_TOPIC_TABLE, mSearchService.mTopics);
+      }
     }else{
-      mDatabaseLocalService.onInsertListTopics(database, CACHE_TOPIC_TABLE, mSearchService.mTopics);
+      mDatabaseLocalService.onGetTopics(database, CACHE_TOPIC_TABLE);
     }
   }
 
@@ -288,5 +397,42 @@ class _SuggestionListViewState extends State<SuggestionListView>
   void onInsertAllError() {
     // TODO: implement onInsertAllError
     print('ERROR INSERT ALLLLLLLLLLLLLL');
+  }
+
+  Widget onBuildSearchResultNetwork(){
+    return Consumer<SearchServices>(
+      builder: (context, model, child) => model.mSearchResponse != null
+          ? ListView.builder(
+        itemCount: model.mSearchResponse.length,
+        itemBuilder: (context, index) => itemSuggestion(model.mSearchResponse[index]),
+      )
+          : Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  Widget onBuildSearchResultLocal(){
+    return Consumer<DatabaseLocalServices>(
+      builder: (context, model, child) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 12),
+            child: TextCustomized(search_on_offline, fontWeight: FontWeightEnum.SEMI_BOLD,),
+          ),
+          Expanded(
+            child: model.mSearchResults != null
+                ? ListView.builder(
+              itemCount: model.mSearchResults.length,
+              itemBuilder: (context, index) => itemSuggestionLocal(model.mSearchResults[index]),
+            )
+                : Center(
+              child: CircularProgressIndicator(),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

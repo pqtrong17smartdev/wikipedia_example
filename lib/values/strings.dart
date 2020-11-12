@@ -8,3 +8,6 @@ const String no_description = "No description";
 const String search_text = "Search";
 const String detail_result = "Detail result";
 const String history_of_topic = "The history of topic will displaying here!";
+const String title_no_internet_dialog = "No internet connection";
+const String content_no_internet_dialog = "Please turn on wifi or mobile network to do this.";
+const String search_on_offline = "You are searching on offline mode";

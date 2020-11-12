@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:wikipedia_example/entity/topic.dart';
 import 'package:wikipedia_example/navigation/navigation.dart';
@@ -13,6 +15,7 @@ import 'package:wikipedia_example/widgets/initial_widget.dart';
 import 'package:wikipedia_example/widgets/text_customized.dart';
 import 'package:provider/provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:connectivity/connectivity.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -20,19 +23,24 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContract {
-  DatabaseLocalServices mServices;
+  DatabaseLocalServices mDatabaseLocalService;
   static const String DATABASE_NAME = "wikipedia";
   static const String VIEWED_TOPIC_TABLE = 'ViewedTopic';
   static const String CACHE_TOPIC_TABLE = 'CacheTopic';
+  final Connectivity _connectivity = Connectivity();
+  StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  bool isConnected;
 
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    mServices = Provider.of<DatabaseLocalServices>(context, listen: false);
-    mServices.contract = this;
-    mServices.onGetDatabasePath(DATABASE_NAME);
+    mDatabaseLocalService = Provider.of<DatabaseLocalServices>(context, listen: false);
+    mDatabaseLocalService.contract = this;
+    mDatabaseLocalService.onGetDatabasePath(DATABASE_NAME);
+    _connectivitySubscription =
+        _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
   }
 
   @override
@@ -60,12 +68,13 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
               ? ListView.builder(
                   itemCount: model.mTopics.length,
                   itemBuilder: (context, index) =>
-                      itemSuggestion(mServices.mTopics[index]))
+                      itemSuggestion(mDatabaseLocalService.mTopics[index]))
               : Center(
                   child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       TextCustomized(
-                        click_to_search,
+                        history_of_topic,
                       ),
                       SizedBox(
                         height: 8,
@@ -99,7 +108,7 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
               child: Row(
                 children: [
                   Container(
-                    child: response.thumbnail != null
+                    child: isConnected?? false ?? response.thumbnail != null
                         ? ImageCustomized.network(
                             url: "https:" + response.thumbnail,
                             fit: BoxFit.fill,
@@ -161,7 +170,7 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
   @override
   void onGetPathSuccess(String path) {
     // TODO: implement onGetPathSuccess
-    mServices.onCreateOrLoadDatabase(path, VIEWED_TOPIC_TABLE);
+    mDatabaseLocalService.onCreateOrLoadDatabase(path, VIEWED_TOPIC_TABLE);
   }
 
   @override
@@ -172,7 +181,7 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
   @override
   void onGetTopicSuccess(List<Topic> response) {
     // TODO: implement onGetTopicSuccess
-    mServices.updatedTopics(response);
+    mDatabaseLocalService.updatedTopics(response);
   }
 
   @override
@@ -193,7 +202,7 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
   @override
   void onOpenOrCreateDatabaseSuccess(Database database) {
     // TODO: implement onOpenOrCreateDatabaseSuccess
-    mServices.onGetTopics(database, VIEWED_TOPIC_TABLE);
+    mDatabaseLocalService.onGetTopics(database, VIEWED_TOPIC_TABLE);
   }
 
   @override
@@ -204,5 +213,25 @@ class _HomePageState extends BaseState<HomePage> implements DatabaseLocalContrac
   @override
   void onInsertAllError() {
     // TODO: implement onInsertAllcError
+  }
+
+  Future<void> _updateConnectionStatus(ConnectivityResult result) async {
+    setState(() {
+      switch (result) {
+        case ConnectivityResult.wifi:
+          isConnected = true;
+          break;
+        case ConnectivityResult.mobile:
+          isConnected = true;
+          break;
+        case ConnectivityResult.none:
+          isConnected = false;
+          break;
+        default:
+          print("DEFAULT ?????????????????????????????????????");
+          isConnected = null;
+          break;
+      }
+    });
   }
 }

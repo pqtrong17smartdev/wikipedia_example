@@ -5,19 +5,37 @@ import 'package:wikipedia_example/repository/local_database_repository.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:wikipedia_example/ui/home/contracts/database_local_contract.dart';
 
+import '../../../entity/topic.dart';
+
 class DatabaseLocalServices extends ChangeNotifier {
   DatabaseLocalContract contract;
   Database mDatabase;
   List<Topic> mTopics;
+  List<Topic> mSearchResults;
 
   void updatedTopics(List<Topic> topics) {
     mTopics = topics;
     notifyListeners();
   }
 
+  void onUpdatedSearchResult(List<Topic> topics) {
+    mSearchResults = topics;
+    notifyListeners();
+  }
+
   void updatedDatabase(Database database) {
     mDatabase = database;
     notifyListeners();
+  }
+
+  List<Topic> onSearchLocal(List<Topic> topics, String query){
+    final List<Topic> _topics = List<Topic>();
+    for(Topic item in topics){
+      if(item.title.toLowerCase().contains(query.toLowerCase()) || item.description.toLowerCase().contains(query.toLowerCase())){
+        _topics.add(item);
+      }
+    }
+    return _topics;
   }
 
   void onGetDatabasePath(String databaseName) async {
@@ -50,9 +68,9 @@ class DatabaseLocalServices extends ChangeNotifier {
   void onInsertListTopics(Database database,String table, List<Topic> topic) async {
     LocalDatabaseRepository repository = Injector().getInstanceLocalDatabase;
     repository.onInsertAllTopics(database, table, topic).then((value) {
-      return contract.onInsertTopicSuccess();
+      return contract.onInsertAllSuccess();
     }).catchError((onError) {
-      return contract.onInsertTopicError();
+      return contract.onInsertAllSuccess();
     });
   }
 

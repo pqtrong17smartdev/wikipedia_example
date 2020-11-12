@@ -24,7 +24,6 @@ class LocalDatabaseRepositoryImpl implements LocalDatabaseRepository {
     // TODO: implement onGetPathDatabase
     var databasesPath = await getDatabasesPath();
     String _path = path.join(databasesPath, '$databaseName.db');
-    // String _path = path.join(databasesPath, 'wikipedia.db');
     return _path;
   }
 
@@ -38,23 +37,16 @@ class LocalDatabaseRepositoryImpl implements LocalDatabaseRepository {
 
   @override
   Future<Database> onOpenOrCreateDatabase(String path, String table) async {
-    print("CREATE TABLE $table (id INTEGER PRIMARY KEY, key TEXT, title TEXT, description TEXT, thumbnail TEXT)");
     // TODO: implement onOpenOrCreateDatabase
     Database database = await openDatabase(
       path, version: 1,
       onCreate: (Database db, int version) async {
-        print("------------ CREATE TABLE: $table ");
         // When creating the db, create the table
         await db.execute(
-            'CREATE TABLE IF NOT EXISTS $table (id INTEGER PRIMARY KEY, key TEXT, title TEXT, description TEXT, thumbnail TEXT)');
+            'CREATE TABLE IF NOT EXISTS ViewedTopic (id INTEGER PRIMARY KEY, key TEXT, title TEXT, description TEXT, thumbnail TEXT)');
 
         await db.execute(
             'CREATE TABLE IF NOT EXISTS CacheTopic (id INTEGER PRIMARY KEY, key TEXT, title TEXT, description TEXT, thumbnail TEXT)');
-        //
-        // Batch batch = db.batch();
-        // batch.execute('CREATE TABLE $table (id INTEGER PRIMARY KEY, key TEXT, title TEXT, description TEXT, thumbnail TEXT)');
-        // List<dynamic> res = await batch.commit();
-        // print(res.toString() + "=====");
       },
     );
     return database;
